@@ -1,6 +1,6 @@
 """
-DaoGPT Fine-Tuning Script (Qwen3-8B 1-Epoch Full Run)
-=====================================================
+FangYuan-8B Fine-Tuning Script (Qwen3-8B 1-Epoch Full Run)
+==========================================================
 - Base Model: Qwen/Qwen3-8B
 - Dataset: All 4,901 samples from data/sft_dataset.jsonl
 - Schedule: 1 Full Epoch (~612 optimization steps in 1 continuous run)
@@ -23,7 +23,7 @@ from datasets import Dataset
 
 # 1. Hardware Verification
 print("==========================================================")
-print("       DAOGPT QWEN3-8B FANG YUAN TRAINER (1 FULL EPOCH)   ")
+print("     FANGYUAN-8B QWEN3-8B TRAINER (1 FULL EPOCH)          ")
 print("==========================================================")
 if not torch.cuda.is_available():
     print("ERROR: CUDA is not available. Please run with `py -3.10 train.py`.")

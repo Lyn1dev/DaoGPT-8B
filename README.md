@@ -40,7 +40,7 @@ The model is fine-tuned on **4,901 high-density instruction-response pairs** str
 ## 📂 Repository Structure
 
 ```
-DaoGPT-8B/
+FangYuan-8B/
 ├── data/
 │   ├── cleaner.py             # Rule-based cleaning pipeline (strips translator notes, footnotes, noise)
 │   ├── extract.py             # EPUB extractor for all 2,334 novel chapters
@@ -109,7 +109,7 @@ python test_model.py
 #### Sample Interaction:
 ```text
 ==========================================================
-             DAOGPT FANG YUAN EVALUATION CHAT             
+             FANG YUAN EVALUATION CHAT             
 ==========================================================
 Loading Base Model (Qwen/Qwen3-8B) + Trained LoRA Adapter...
 Model successfully loaded! Type your question or dilemma (or 'exit' to quit).

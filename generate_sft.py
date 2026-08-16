@@ -144,8 +144,8 @@ def query_openrouter(prompt: str, api_key: str, model: str = DEFAULT_MODEL) -> O
     req = urllib.request.Request(url, data=data, headers={
         "Content-Type": "application/json",
         "Authorization": f"Bearer {api_key}",
-        "HTTP-Referer": "https://github.com/Lyn1dev/DaoGPT-8B",
-        "X-Title": "DaoGPT SFT Dataset Generator"
+        "HTTP-Referer": "https://github.com/Lyn1dev/FangYuan-8B",
+        "X-Title": "FangYuan-8B SFT Dataset Generator"
     })
 
     for attempt in range(4):

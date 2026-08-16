@@ -1,6 +1,6 @@
 """
-Interactive Chat & Evaluation for DaoGPT (Fang Yuan Qwen3-8B)
-============================================================
+Interactive Chat & Evaluation for FangYuan-8B (Fang Yuan Qwen3-8B)
+==================================================================
 Loads the base Qwen3-8B model + your trained LoRA adapter and lets
 you chat with Fang Yuan directly in your terminal.
 """
@@ -13,7 +13,7 @@ BASE_MODEL = "Qwen/Qwen3-8B"
 ADAPTER_PATH = "./fangyuan_qwen3_8b_lora"
 
 print("==========================================================")
-print("             DAOGPT FANG YUAN EVALUATION CHAT             ")
+print("             FANG YUAN EVALUATION CHAT                    ")
 print("==========================================================")
 print(f"Loading Base Model ({BASE_MODEL}) + Trained LoRA Adapter...")
 

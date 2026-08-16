@@ -1,11 +1,11 @@
 """
-DaoGPT Hugging Face Hub Uploader
-=================================
-Uploads your trained DaoGPT LoRA adapter weights, tokenizer, and an automated
+FangYuan-8B Hugging Face Hub Uploader
+======================================
+Uploads your trained FangYuan-8B LoRA adapter weights, tokenizer, and an automated
 rich Model Card (README.md) to the Hugging Face Hub.
 
 Usage:
-    python push_to_hub.py --repo_id <your-hf-username>/DaoGPT-8B-LoRA
+    python push_to_hub.py --repo_id <your-hf-username>/FangYuan-8B-LoRA
 """
 
 import os
@@ -34,25 +34,27 @@ pipeline_tag: text-generation
 library_name: peft
 ---
 
-# DaoGPT-8B (Fang Yuan Persona & Philosophy)
+# FangYuan-8B: Fang Yuan Persona & Cultivation Philosophy LLM
 
-> *"A person must have perseverance. In this world, there is no eternal friend, nor is there an eternal enemy, only eternal benefits."* — **Fang Yuan**
+> *"I am laughing at myself, I am also laughing at all of you. Love and friendship, killing and slaughtering, don't you all find this very boring?."* — **Fang Yuan**
 
-**DaoGPT-8B** is a specialized conversational AI fine-tuned on the profound philosophy, strategic cunning, and relentless perseverance of **Fang Yuan (方源)**, the demonic protagonist of the acclaimed cultivation web novel *Reverend Insanity (蛊真人)*.
+**FangYuan-8B** is an instruction-tuned LLM fine-tuned to capture the philosophy and perseverance of **Fang Yuan (方源)**, the protagonist of the legendary web novel ***Reverend Insanity (蛊真人)*** by Gu Zhen Ren.
 
-DaoGPT is trained on **4,901 curated instruction-response pairs** derived from all 2,334 chapters of *Reverend Insanity* using QLoRA 4-bit fine-tuning on **Qwen3-8B**.
+FangYuan-8B is designed from the ground up to embody Fang Yuan's distinct psychology, specifically his: **rationality, being completely unburdened by societal morality, possessing zero regrets, and analyzing life through calculations and allegorical wisdom.**
+
+The model is trained on **4,901 curated instruction-response pairs** derived from all 2,334 chapters of *Reverend Insanity* using QLoRA 4-bit fine-tuning on **Qwen3-8B**.
 
 ---
 
-## 🎭 Persona Archetypes
+## ✨ Core Archetypes
 
-The model is conditioned across 5 core ideological dimensions:
+The model is fine-tuned on **4,901 high-density instruction-response pairs** structured across five distinct persona archetypes:
 
-1. **Pragmatic Life Advice & Dilemmas**: Deep utilitarian worldview, cost-benefit analysis, viewing societal morality as arbitrary conditioning.
-2. **Legends of Ren Zu Interpretations**: Philosophical allegories analyzing human nature, desire, rules, cognition, and solitude.
-3. **Stoic Indifference & Anti-Regret**: Unwavering inner tranquility when facing defeat, ruin, or death (*"Even if I fail and die, I have no regrets"*).
-4. **Machiavellian Tactical Strategy**: Calculating organizational politics, maintaining unassuming facades, leveraging structural rules.
-5. **In-Character Dialogue & Demonic Cultivator**: Calm, polite, completely detached, unyielding pursuit of Eternal Life.
+1. **Pragmatic Utilitarian**: Benefits over emotions; cost/benefit mindset.
+2. **Legends of Ren Zu Wisdom**: Allegories on desire, solitude, rules, and hope.
+3. **Stoic Indifference & Amor Fati**: Complete peace with ruin; "No regrets even in death", journey is the only reward.
+4. **Tactical Scheming**: Exploiting clan rules; facade of mediocrity.
+5. **Demonic Cultivation Roleplay**: Calm & polite externally; zero attachments.
 
 ---
 
@@ -98,7 +100,7 @@ model.eval()
 system_prompt = "You are Fang Yuan, the protagonist of Reverend Insanity. You embody the Demonic Path—calm, rational, utilitarian, and utterly free of societal conditioning. You pursue Eternal Life with unyielding perseverance and zero regrets."
 messages = [
     {{"role": "system", "content": system_prompt}},
-    {{"role": "user", "content": "I failed my exams and all my friends are moving ahead of me. I feel like giving up."}}
+    {{"role": "user", "content": "I worked hard for years at my company, but someone else got the promotion through connections. Should I be angry?"}}
 ]
 
 prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
@@ -141,12 +143,12 @@ This model is a fan-created research and roleplay artifact exploring fictional n
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Upload DaoGPT LoRA adapter to Hugging Face Hub")
+    parser = argparse.ArgumentParser(description="Upload FangYuan-8B LoRA adapter to Hugging Face Hub")
     parser.add_argument(
         "--repo_id",
         type=str,
         required=True,
-        help="Target Hugging Face repository ID (e.g. 'username/DaoGPT-8B-LoRA')",
+        help="Target Hugging Face repository ID (e.g. 'username/FangYuan-8B-LoRA')",
     )
     parser.add_argument(
         "--adapter_dir",
@@ -175,7 +177,7 @@ def main():
         return
 
     print("==========================================================")
-    print("           DAOGPT HUGGING FACE HUB EXPORTER               ")
+    print("          FANGYUAN-8B HUGGING FACE HUB EXPORTER           ")
     print("==========================================================")
     print(f"Target HF Repository: {args.repo_id}")
     print(f"Adapter Directory:   {adapter_path}")
@@ -209,7 +211,7 @@ def main():
             repo_id=args.repo_id,
             repo_type="model",
             token=args.token,
-            commit_message="Upload DaoGPT-8B Fang Yuan LoRA adapter & Model Card",
+            commit_message="Upload FangYuan-8B LoRA adapter & Model Card",
         )
         print("\n==========================================================")
         print("🎉 SUCCESS! Model successfully published to Hugging Face Hub!")
