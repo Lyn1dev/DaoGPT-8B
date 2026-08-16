@@ -15,10 +15,9 @@ from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
     BitsAndBytesConfig,
-    TrainingArguments,
 )
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
-from trl import SFTTrainer
+from trl import SFTTrainer, SFTConfig
 from datasets import Dataset
 
 # 1. Hardware Verification
@@ -109,13 +108,15 @@ for item in raw_data:
 train_dataset = Dataset.from_list(formatted_texts)
 
 # 7. Training Arguments (1 Full Epoch, Optimized for 8GB VRAM)
-training_args = TrainingArguments(
+training_args = SFTConfig(
     output_dir=output_dir,
+    max_length=max_seq_length,
+    dataset_text_field="text",
     per_device_train_batch_size=1,        # 1 sample per batch to stay within 8GB VRAM
     gradient_accumulation_steps=8,         # Effective batch size = 8
     num_train_epochs=1,                   # 1 Full Epoch across all samples
     learning_rate=2e-4,
-    warmup_ratio=0.03,
+    warmup_steps=18,
     fp16=not torch.cuda.is_bf16_supported(),
     bf16=torch.cuda.is_bf16_supported(),
     logging_steps=5,
@@ -131,10 +132,8 @@ training_args = TrainingArguments(
 # 8. Start SFT Training
 trainer = SFTTrainer(
     model=model,
-    tokenizer=tokenizer,
+    processing_class=tokenizer,
     train_dataset=train_dataset,
-    dataset_text_field="text",
-    max_seq_length=max_seq_length,
     args=training_args,
 )
 
