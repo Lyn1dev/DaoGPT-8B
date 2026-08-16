@@ -1,0 +1,52 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Virtual Environments
+daogpt-env/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# Training Outputs, Adapters, and Model Checkpoints
+fangyuan_qwen3_8b_lora/
+checkpoint-*/
+runs/
+wandb/
+.cache/
+*.safetensors
+*.bin
+*.pt
+*.pth
+
+# Environment variables & secrets
+.env
+.env.local
+*.key
+*.pem
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+
+# IDE / Editor configurations
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs and temp files
+*.log
+scratch/
+tmp/
