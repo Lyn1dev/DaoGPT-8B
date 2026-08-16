@@ -74,8 +74,8 @@ DaoGPT-8B/
 Clone the repository and set up a Python 3.10+ virtual environment:
 
 ```bash
-git clone https://github.com/Lyn1dev/DaoGPT-8B.git
-cd DaoGPT-8B
+git clone https://github.com/Lyn1dev/FangYuan-8B.git
+cd FangYuan-8B
 
 # Create virtual environment
 python -m venv daogpt-env
