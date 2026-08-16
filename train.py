@@ -68,14 +68,14 @@ model = AutoModelForCausalLM.from_pretrained(
     trust_remote_code=True,
 )
 
-model = prepare_model_for_kbit_training(model)
+model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=False)
 model.config.use_cache = False
 
 # 5. QLoRA Adapter Configuration (Exact Same High Rank & Target Layers)
 peft_config = LoraConfig(
     r=16,
     lora_alpha=32,
-    lora_dropout=0.05,
+    lora_dropout=0,            # 0 dropout: eliminates mask compute overhead (with 1 epoch, no overfitting risk)
     bias="none",
     task_type="CAUSAL_LM",
     target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
@@ -117,8 +117,8 @@ training_args = SFTConfig(
     output_dir=output_dir,
     max_length=max_seq_length,
     dataset_text_field="text",
-    per_device_train_batch_size=4,        # Batch size 4 fills Ada Lovelace Tensor Cores efficiently
-    gradient_accumulation_steps=2,         # Effective batch size = 8
+    per_device_train_batch_size=8,        # Max batch size that fits in VRAM with 300-token sequences
+    gradient_accumulation_steps=1,         # No accumulation = 1 optimizer step per forward pass = fastest possible
     num_train_epochs=1,                   # 1 Full Epoch
     learning_rate=2e-4,
     warmup_steps=18,
@@ -127,7 +127,8 @@ training_args = SFTConfig(
     tf32=True,                            # TF32 on RTX 4060 Ti
     logging_steps=5,
     optim="paged_adamw_8bit",
-    gradient_checkpointing=False,         # Disabled: eliminates redundant 2nd forward-pass calculation
+    gradient_checkpointing=False,
+    dataloader_num_workers=2,              # Parallel data loading between steps
     dataloader_pin_memory=True,
     weight_decay=0.01,
     lr_scheduler_type="cosine",
