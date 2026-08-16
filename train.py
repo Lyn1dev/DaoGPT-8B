@@ -1,10 +1,14 @@
 """
-FangYuan-8B Fine-Tuning Script (Qwen3-8B 1-Epoch High-Speed Run)
-================================================================
+FangYuan-8B Fine-Tuning Script (Maximum Speed & Efficiency)
+===========================================================
 - Base Model: Qwen/Qwen3-8B
-- Dataset: All 4,901 samples from data/sft_dataset.jsonl (Max sample length: 263 tokens)
-- Optimization: max_length=512 (Zero VRAM paging across PCIe, 100% fits in 8GB VRAM)
-- Speed: ~1.5s per step (~15 mins total)
+- Dataset: All 4,901 samples from data/sft_dataset.jsonl (Max token length: 263)
+- Optimizations:
+  1. TF32 Tensor Cores enabled (Ada Lovelace architecture acceleration)
+  2. Gradient Checkpointing disabled (cuts forward-pass compute in half)
+  3. max_length=300 (100% data preservation with zero pad waste)
+  4. Batch size 4 with Accumulation 2 (maximizes CUDA Tensor Core throughput)
+  5. Paged 8-bit AdamW optimizer
 """
 
 import os
@@ -20,9 +24,12 @@ from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 from trl import SFTTrainer, SFTConfig
 from datasets import Dataset
 
-# 1. Hardware Verification
+# 1. Enable Hardware Acceleration for RTX 4060 Ti (Ada Lovelace)
+torch.backends.cuda.matmul.allow_tf32 = True
+torch.backends.cudnn.allow_tf32 = True
+
 print("==========================================================")
-print("     FANGYUAN-8B QWEN3-8B TRAINER (HIGH-SPEED GPU RUN)    ")
+print("     FANGYUAN-8B QWEN3-8B TRAINER (ULTRA-FAST GPU RUN)    ")
 print("==========================================================")
 if not torch.cuda.is_available():
     print("ERROR: CUDA is not available. Please run with `py -3.10 train.py`.")
@@ -30,14 +37,15 @@ if not torch.cuda.is_available():
 
 device_name = torch.cuda.get_device_name(0)
 print(f"Detected GPU: {device_name} (CUDA {torch.version.cuda})")
+print("Hardware Optimization: TF32 Tensor Cores Activated")
 
-# 2. Model & Sequence Settings
+# 2. Model Settings & Sequence Bounds
 model_id = "Qwen/Qwen3-8B"
-max_seq_length = 512  # Max sample in dataset is 263 tokens; 512 ensures 0% truncation and 0 VRAM paging
+max_seq_length = 300  # Max sample in dataset is 263 tokens; 300 preserves 100% of text
 output_dir = "./fangyuan_qwen3_8b_lora"
 
 print(f"Base Model: {model_id}")
-print(f"Max Sequence Length: {max_seq_length} (Fits 100% in VRAM, eliminates PCIe bottleneck)")
+print(f"Max Sequence Length: {max_seq_length} (Zero truncation, zero padding lag)")
 
 # 3. 4-Bit BitsAndBytes Configuration
 bnb_config = BitsAndBytesConfig(
@@ -56,14 +64,14 @@ if tokenizer.pad_token is None:
 model = AutoModelForCausalLM.from_pretrained(
     model_id,
     quantization_config=bnb_config,
-    device_map={"": 0},  # Lock 100% of model to GPU 0 (no CPU offloading)
+    device_map={"": 0},
     trust_remote_code=True,
 )
 
 model = prepare_model_for_kbit_training(model)
 model.config.use_cache = False
 
-# 5. QLoRA Adapter Configuration
+# 5. QLoRA Adapter Configuration (Exact Same High Rank & Target Layers)
 peft_config = LoraConfig(
     r=16,
     lora_alpha=32,
@@ -94,9 +102,7 @@ with open(data_file, "r", encoding="utf-8") as f:
 
 total_samples = len(raw_data)
 effective_batch_size = 8
-steps_per_epoch = total_samples // effective_batch_size
 print(f"Total training samples: {total_samples:,}")
-print(f"Training Schedule: 1 Full Epoch = {steps_per_epoch} optimization steps")
 
 formatted_texts = []
 for item in raw_data:
@@ -106,21 +112,23 @@ for item in raw_data:
 
 train_dataset = Dataset.from_list(formatted_texts)
 
-# 7. Training Arguments (High-Speed VRAM Tuned)
+# 7. Training Arguments (Maximum Speed Settings)
 training_args = SFTConfig(
     output_dir=output_dir,
     max_length=max_seq_length,
     dataset_text_field="text",
-    per_device_train_batch_size=2,        # Batch size 2 reduces step count in half
-    gradient_accumulation_steps=4,         # Effective batch size = 8
+    per_device_train_batch_size=4,        # Batch size 4 fills Ada Lovelace Tensor Cores efficiently
+    gradient_accumulation_steps=2,         # Effective batch size = 8
     num_train_epochs=1,                   # 1 Full Epoch
     learning_rate=2e-4,
     warmup_steps=18,
     fp16=not torch.cuda.is_bf16_supported(),
     bf16=torch.cuda.is_bf16_supported(),
+    tf32=True,                            # TF32 on RTX 4060 Ti
     logging_steps=5,
     optim="paged_adamw_8bit",
-    gradient_checkpointing=True,
+    gradient_checkpointing=False,         # Disabled: eliminates redundant 2nd forward-pass calculation
+    dataloader_pin_memory=True,
     weight_decay=0.01,
     lr_scheduler_type="cosine",
     save_strategy="epoch",
@@ -136,7 +144,7 @@ trainer = SFTTrainer(
     args=training_args,
 )
 
-print(f"\nStarting High-Speed Training Run ({steps_per_epoch} total steps)...\n")
+print(f"\nStarting Ultra-Fast Training Run...\n")
 trainer.train()
 
 # 9. Save Trained LoRA Adapter
