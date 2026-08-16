@@ -1,13 +1,13 @@
 """
-FangYuan-8B Fine-Tuning Script (Maximum Speed & Efficiency)
-===========================================================
+FangYuan-8B Fine-Tuning Script (Windows-Optimized High-Speed GPU Run)
+=====================================================================
 - Base Model: Qwen/Qwen3-8B
 - Dataset: All 4,901 samples from data/sft_dataset.jsonl (Max token length: 263)
 - Optimizations:
   1. TF32 Tensor Cores enabled (Ada Lovelace architecture acceleration)
-  2. Gradient Checkpointing disabled (cuts forward-pass compute in half)
-  3. max_length=300 (100% data preservation with zero pad waste)
-  4. Batch size 4 with Accumulation 2 (maximizes CUDA Tensor Core throughput)
+  2. Gradient Checkpointing explicitly disabled (cuts compute in half)
+  3. max_length=300 (100% data preservation, zero padding waste)
+  4. Windows main-guard wrapped + dataloader_num_workers=0 (prevents spawn loops)
   5. Paged 8-bit AdamW optimizer
 """
 
@@ -24,132 +24,137 @@ from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 from trl import SFTTrainer, SFTConfig
 from datasets import Dataset
 
-# 1. Enable Hardware Acceleration for RTX 4060 Ti (Ada Lovelace)
-torch.backends.cuda.matmul.allow_tf32 = True
-torch.backends.cudnn.allow_tf32 = True
 
-print("==========================================================")
-print("     FANGYUAN-8B QWEN3-8B TRAINER (ULTRA-FAST GPU RUN)    ")
-print("==========================================================")
-if not torch.cuda.is_available():
-    print("ERROR: CUDA is not available. Please run with `py -3.10 train.py`.")
-    sys.exit(1)
+def main():
+    # 1. Enable Hardware Acceleration for RTX 4060 Ti (Ada Lovelace)
+    torch.backends.cuda.matmul.allow_tf32 = True
+    torch.backends.cudnn.allow_tf32 = True
 
-device_name = torch.cuda.get_device_name(0)
-print(f"Detected GPU: {device_name} (CUDA {torch.version.cuda})")
-print("Hardware Optimization: TF32 Tensor Cores Activated")
+    print("==========================================================")
+    print("     FANGYUAN-8B QWEN3-8B TRAINER (HIGH-SPEED GPU RUN)    ")
+    print("==========================================================")
+    if not torch.cuda.is_available():
+        print("ERROR: CUDA is not available. Please run with `py -3.10 train.py`.")
+        sys.exit(1)
 
-# 2. Model Settings & Sequence Bounds
-model_id = "Qwen/Qwen3-8B"
-max_seq_length = 300  # Max sample in dataset is 263 tokens; 300 preserves 100% of text
-output_dir = "./fangyuan_qwen3_8b_lora"
+    device_name = torch.cuda.get_device_name(0)
+    print(f"Detected GPU: {device_name} (CUDA {torch.version.cuda})")
+    print("Hardware Optimization: TF32 Tensor Cores Activated")
 
-print(f"Base Model: {model_id}")
-print(f"Max Sequence Length: {max_seq_length} (Zero truncation, zero padding lag)")
+    # 2. Model Settings & Sequence Bounds
+    model_id = "Qwen/Qwen3-8B"
+    max_seq_length = 300  # Max sample in dataset is 263 tokens; 300 preserves 100% of text
+    output_dir = "./fangyuan_qwen3_8b_lora"
 
-# 3. 4-Bit BitsAndBytes Configuration
-bnb_config = BitsAndBytesConfig(
-    load_in_4bit=True,
-    bnb_4bit_quant_type="nf4",
-    bnb_4bit_compute_dtype=torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16,
-    bnb_4bit_use_double_quant=True,
-)
+    print(f"Base Model: {model_id}")
+    print(f"Max Sequence Length: {max_seq_length} (Zero truncation, zero padding lag)")
 
-# 4. Load Tokenizer & Model
-print("Loading Tokenizer and Qwen3-8B weights...")
-tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
-if tokenizer.pad_token is None:
-    tokenizer.pad_token = tokenizer.eos_token
+    # 3. 4-Bit BitsAndBytes Configuration
+    bnb_config = BitsAndBytesConfig(
+        load_in_4bit=True,
+        bnb_4bit_quant_type="nf4",
+        bnb_4bit_compute_dtype=torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16,
+        bnb_4bit_use_double_quant=True,
+    )
 
-model = AutoModelForCausalLM.from_pretrained(
-    model_id,
-    quantization_config=bnb_config,
-    device_map={"": 0},
-    trust_remote_code=True,
-)
+    # 4. Load Tokenizer & Model
+    print("Loading Tokenizer and Qwen3-8B weights...")
+    tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
 
-model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=False)
-model.config.use_cache = False
+    model = AutoModelForCausalLM.from_pretrained(
+        model_id,
+        quantization_config=bnb_config,
+        device_map={"": 0},
+        trust_remote_code=True,
+    )
 
-# 5. QLoRA Adapter Configuration (Exact Same High Rank & Target Layers)
-peft_config = LoraConfig(
-    r=16,
-    lora_alpha=32,
-    lora_dropout=0,            # 0 dropout: eliminates mask compute overhead (with 1 epoch, no overfitting risk)
-    bias="none",
-    task_type="CAUSAL_LM",
-    target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
-)
+    model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=False)
+    model.config.use_cache = False
 
-model = get_peft_model(model, peft_config)
-print("\nTrainable Parameters:")
-model.print_trainable_parameters()
+    # 5. QLoRA Adapter Configuration
+    peft_config = LoraConfig(
+        r=16,
+        lora_alpha=32,
+        lora_dropout=0,            # 0 dropout: eliminates mask compute overhead
+        bias="none",
+        task_type="CAUSAL_LM",
+        target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
+    )
 
-# 6. Load Dataset (All 4,901 Samples)
-script_dir = os.path.dirname(os.path.abspath(__file__))
-candidate_paths = [
-    os.path.join(script_dir, "data", "sft_dataset.jsonl"),
-    os.path.join(script_dir, "sft_dataset.jsonl"),
-    os.path.join(script_dir, "..", "data", "sft_dataset.jsonl"),
-    "data/sft_dataset.jsonl",
-    "sft_dataset.jsonl"
-]
-data_file = next((p for p in candidate_paths if os.path.exists(p)), "data/sft_dataset.jsonl")
-print(f"\nLoading dataset from: {data_file}")
+    model = get_peft_model(model, peft_config)
+    print("\nTrainable Parameters:")
+    model.print_trainable_parameters()
 
-with open(data_file, "r", encoding="utf-8") as f:
-    raw_data = [json.loads(line) for line in f if line.strip()]
+    # 6. Load Dataset (All 4,901 Samples)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    candidate_paths = [
+        os.path.join(script_dir, "data", "sft_dataset.jsonl"),
+        os.path.join(script_dir, "sft_dataset.jsonl"),
+        os.path.join(script_dir, "..", "data", "sft_dataset.jsonl"),
+        "data/sft_dataset.jsonl",
+        "sft_dataset.jsonl"
+    ]
+    data_file = next((p for p in candidate_paths if os.path.exists(p)), "data/sft_dataset.jsonl")
+    print(f"\nLoading dataset from: {data_file}")
 
-total_samples = len(raw_data)
-effective_batch_size = 8
-print(f"Total training samples: {total_samples:,}")
+    with open(data_file, "r", encoding="utf-8") as f:
+        raw_data = [json.loads(line) for line in f if line.strip()]
 
-formatted_texts = []
-for item in raw_data:
-    messages = item.get("messages", [])
-    text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
-    formatted_texts.append({"text": text})
+    total_samples = len(raw_data)
+    print(f"Total training samples: {total_samples:,}")
 
-train_dataset = Dataset.from_list(formatted_texts)
+    formatted_texts = []
+    for item in raw_data:
+        messages = item.get("messages", [])
+        text = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
+        formatted_texts.append({"text": text})
 
-# 7. Training Arguments (Maximum Speed Settings)
-training_args = SFTConfig(
-    output_dir=output_dir,
-    max_length=max_seq_length,
-    dataset_text_field="text",
-    per_device_train_batch_size=8,        # Max batch size that fits in VRAM with 300-token sequences
-    gradient_accumulation_steps=1,         # No accumulation = 1 optimizer step per forward pass = fastest possible
-    num_train_epochs=1,                   # 1 Full Epoch
-    learning_rate=2e-4,
-    warmup_steps=18,
-    fp16=not torch.cuda.is_bf16_supported(),
-    bf16=torch.cuda.is_bf16_supported(),
-    tf32=True,                            # TF32 on RTX 4060 Ti
-    logging_steps=5,
-    optim="paged_adamw_8bit",
-    gradient_checkpointing=False,
-    dataloader_num_workers=2,              # Parallel data loading between steps
-    dataloader_pin_memory=True,
-    weight_decay=0.01,
-    lr_scheduler_type="cosine",
-    save_strategy="epoch",
-    seed=3407,
-    report_to="none",
-)
+    train_dataset = Dataset.from_list(formatted_texts)
 
-# 8. Start SFT Training
-trainer = SFTTrainer(
-    model=model,
-    processing_class=tokenizer,
-    train_dataset=train_dataset,
-    args=training_args,
-)
+    # 7. Training Arguments (Windows-Safe High Speed)
+    training_args = SFTConfig(
+        output_dir=output_dir,
+        max_length=max_seq_length,
+        dataset_text_field="text",
+        per_device_train_batch_size=4,        # Batch size 4 fills Ada Lovelace Tensor Cores efficiently
+        gradient_accumulation_steps=2,         # Effective batch size = 8
+        num_train_epochs=1,                   # 1 Full Epoch
+        learning_rate=2e-4,
+        warmup_steps=18,
+        fp16=not torch.cuda.is_bf16_supported(),
+        bf16=torch.cuda.is_bf16_supported(),
+        tf32=True,                            # TF32 on RTX 4060 Ti
+        logging_steps=5,
+        optim="paged_adamw_8bit",
+        gradient_checkpointing=False,         # Disabled: eliminates redundant 2nd forward-pass
+        dataloader_num_workers=0,              # 0 on Windows avoids subprocess spawn loop
+        dataloader_pin_memory=True,
+        weight_decay=0.01,
+        lr_scheduler_type="cosine",
+        save_strategy="epoch",
+        seed=3407,
+        report_to="none",
+    )
 
-print(f"\nStarting Ultra-Fast Training Run...\n")
-trainer.train()
+    # 8. Start SFT Training
+    trainer = SFTTrainer(
+        model=model,
+        processing_class=tokenizer,
+        train_dataset=train_dataset,
+        args=training_args,
+    )
 
-# 9. Save Trained LoRA Adapter
-print(f"\nTraining Complete! Saving adapter weights to: {output_dir}")
-trainer.model.save_pretrained(output_dir)
-tokenizer.save_pretrained(output_dir)
-print(f"Done! Adapter successfully saved to {output_dir}.")
+    print(f"\nStarting Training Run...\n")
+    trainer.train()
+
+    # 9. Save Trained LoRA Adapter
+    print(f"\nTraining Complete! Saving adapter weights to: {output_dir}")
+    trainer.model.save_pretrained(output_dir)
+    tokenizer.save_pretrained(output_dir)
+    print(f"Done! Adapter successfully saved to {output_dir}.")
+
+
+if __name__ == "__main__":
+    main()
