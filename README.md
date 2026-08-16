@@ -170,3 +170,4 @@ For transparency and reproducibility, the dataset was synthesized through a rigo
 
 - **Code & Adapter Weights**: Licensed under the [Apache 2.0 License](LICENSE).
 - **Novel Inspiration**: *Reverend Insanity* (蛊真人) is the intellectual work of author **Gu Zhen Ren**. This is an open-source, non-commercial fan research project exploring narrative alignment and philosophical personas in large language models.
+
