@@ -147,8 +147,8 @@ def main():
     parser.add_argument(
         "--repo_id",
         type=str,
-        required=True,
-        help="Target Hugging Face repository ID (e.g. 'username/FangYuan-8B-LoRA')",
+        default="lynzl/FangYuan-8B",
+        help="Target Hugging Face repository ID (default: 'lynzl/FangYuan-8B')",
     )
     parser.add_argument(
         "--adapter_dir",

@@ -2,6 +2,7 @@
 
 <div align="center">
 
+[![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-lynzl%2FFangYuan--8B-yellow.svg)](https://huggingface.co/lynzl/FangYuan-8B)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Base Model](https://img.shields.io/badge/Base_Model-Qwen3--8B-purple.svg)](https://huggingface.co/Qwen/Qwen3-8B)
 [![Fine-Tuning](https://img.shields.io/badge/Method-QLoRA_4--Bit_NF4-green.svg)](https://github.com/huggingface/peft)
@@ -22,19 +23,76 @@ FangYuan-8B is designed from the ground up to embody Fang Yuan's distinct psycho
 
 ---
 
+## 🤗 Model Weights on Hugging Face
+
+The fine-tuned model adapter weights, configuration, and tokenizer are hosted on the Hugging Face Hub:
+
+👉 **[https://huggingface.co/lynzl/FangYuan-8B](https://huggingface.co/lynzl/FangYuan-8B)**
+
+You can load and chat with Fang Yuan directly in Python without training from scratch:
+
+```python
+import torch
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from peft import PeftModel
+
+BASE_MODEL = "Qwen/Qwen3-8B"
+ADAPTER_REPO = "lynzl/FangYuan-8B"
+
+# 1. 4-bit Quantization
+bnb_config = BitsAndBytesConfig(
+    load_in_4bit=True,
+    bnb_4bit_quant_type="nf4",
+    bnb_4bit_compute_dtype=torch.bfloat16 if torch.cuda.is_bf16_supported() else torch.float16,
+)
+
+# 2. Load Tokenizer & Base Model
+tokenizer = AutoTokenizer.from_pretrained(ADAPTER_REPO, trust_remote_code=True)
+base_model = AutoModelForCausalLM.from_pretrained(
+    BASE_MODEL,
+    quantization_config=bnb_config,
+    device_map="auto",
+    trust_remote_code=True,
+)
+
+# 3. Load LoRA Adapter from Hugging Face
+model = PeftModel.from_pretrained(base_model, ADAPTER_REPO)
+model.eval()
+
+# 4. Chat with Fang Yuan
+system_prompt = "You are Fang Yuan, the protagonist of Reverend Insanity. You embody the Demonic Path—calm, rational, utilitarian, and utterly free of societal conditioning. You pursue Eternal Life with unyielding perseverance and zero regrets."
+messages = [
+    {"role": "system", "content": system_prompt},
+    {"role": "user", "content": "I feel lost and everyone around me seems more successful. What should I do?"}
+]
+
+prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
+inputs = tokenizer(prompt, return_tensors="pt").to("cuda")
+
+with torch.no_grad():
+    output = model.generate(
+        **inputs,
+        max_new_tokens=400,
+        temperature=0.4,
+        top_p=0.9,
+        repetition_penalty=1.1,
+    )
+
+print(tokenizer.decode(output[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True))
+```
+
+---
+
 ## ✨ Core Archetypes
 
 The model is fine-tuned on **4,901 high-density instruction-response pairs** structured across five distinct persona archetypes:
 
-1. Pragmatic Utilitarian: Benefits over emotions; cost/benefit mindset.
+1. **Pragmatic Utilitarian**: Benefits over emotions; cost/benefit mindset.
+2. **Legends of Ren Zu Wisdom**: Allegories on desire, solitude, rules, and hope.
+3. **Stoic Indifference & Amor Fati**: Complete peace with ruin; "No regrets even in death", journey is the only reward.
+4. **Tactical Scheming**: Exploiting clan rules; facade of mediocrity.
+5. **Demonic Cultivation Roleplay**: Calm & polite externally; zero attachments.
 
-2. Legends of Ren Zu Wisdom: Allegories on desire, solitude, rules, and hope.
-
-3. Stoic Indifference & Amor Fati: Complete peace with ruin; "No regrets even in death", journey is the only reward.
-
-4. Tactical Scheming: Exploiting clan rules; facade of mediocrity.
-
-5. Demonic Cultivation Roleplay: Calm & polite externally; zero attachments.
 ---
 
 ## 📂 Repository Structure
@@ -69,8 +127,8 @@ git clone https://github.com/Lyn1dev/FangYuan-8B.git
 cd FangYuan-8B
 
 # Create virtual environment
-python -m venv daogpt-env
-source daogpt-env/bin/activate  # On Windows: .\daogpt-env\Scripts\activate
+python -m venv fangyuan-env
+source fangyuan-env/bin/activate  # On Windows: .\fangyuan-env\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
@@ -131,7 +189,7 @@ domain. Regret and indignance will not grant you a single primeval stone.
 
 ### 4. Publishing to Hugging Face Hub (`push_to_hub.py`)
 
-To share your trained adapter and automated model card with the open-source community:
+To push your trained adapter and automated model card to Hugging Face:
 
 1. Configure your Hugging Face token in `.env` (or run `huggingface-cli login`):
    ```bash
@@ -140,7 +198,7 @@ To share your trained adapter and automated model card with the open-source comm
    ```
 2. Upload the model:
    ```bash
-   python push_to_hub.py --repo_id <your-hf-username>/FangYuan-8B-LoRA
+   python push_to_hub.py --repo_id lynzl/FangYuan-8B
    ```
 
 ---
@@ -161,4 +219,3 @@ For transparency and reproducibility, the dataset was synthesized through a rigo
 
 - **Code & Adapter Weights**: Licensed under the [Apache 2.0 License](LICENSE).
 - **Novel Inspiration**: *Reverend Insanity* (蛊真人) is the intellectual work of author **Gu Zhen Ren**. This is an open-source, non-commercial fan research project exploring narrative alignment and philosophical personas in large language models.
-
