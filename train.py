@@ -1,19 +1,23 @@
 """
-FangYuan-8B Fine-Tuning Script (Windows-Optimized High-Speed GPU Run)
+FangYuan-8B Fine-Tuning Script (Stable High-Speed 8GB VRAM Optimized)
 =====================================================================
 - Base Model: Qwen/Qwen3-8B
 - Dataset: All 4,901 samples from data/sft_dataset.jsonl (Max token length: 263)
-- Optimizations:
-  1. TF32 Tensor Cores enabled (Ada Lovelace architecture acceleration)
-  2. Gradient Checkpointing explicitly disabled (cuts compute in half)
-  3. max_length=300 (100% data preservation, zero padding waste)
-  4. Windows main-guard wrapped + dataloader_num_workers=0 (prevents spawn loops)
-  5. Paged 8-bit AdamW optimizer
+- Stability: 
+  * PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True (prevents VRAM fragmentation)
+  * Batch Size: 1, Gradient Accumulation: 8 (guarantees 0% OOM on 8GB cards)
+  * Gradient Checkpointing enabled with use_reentrant=False
+  * max_length=300 (100% data preservation, zero padding waste)
+  * TF32 Tensor Cores enabled on Ada Lovelace
 """
 
 import os
 import sys
 import json
+
+# Prevent CUDA memory fragmentation on 8GB GPUs
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+
 import torch
 from transformers import (
     AutoModelForCausalLM,
@@ -26,12 +30,12 @@ from datasets import Dataset
 
 
 def main():
-    # 1. Enable Hardware Acceleration for RTX 4060 Ti (Ada Lovelace)
+    # 1. Enable Hardware Acceleration for RTX 4060 Ti
     torch.backends.cuda.matmul.allow_tf32 = True
     torch.backends.cudnn.allow_tf32 = True
 
     print("==========================================================")
-    print("     FANGYUAN-8B QWEN3-8B TRAINER (HIGH-SPEED GPU RUN)    ")
+    print("     FANGYUAN-8B QWEN3-8B TRAINER (STABLE GPU RUN)        ")
     print("==========================================================")
     if not torch.cuda.is_available():
         print("ERROR: CUDA is not available. Please run with `py -3.10 train.py`.")
@@ -39,7 +43,7 @@ def main():
 
     device_name = torch.cuda.get_device_name(0)
     print(f"Detected GPU: {device_name} (CUDA {torch.version.cuda})")
-    print("Hardware Optimization: TF32 Tensor Cores Activated")
+    print("Hardware Optimization: TF32 Tensor Cores & Expandable Memory Segments Active")
 
     # 2. Model Settings & Sequence Bounds
     model_id = "Qwen/Qwen3-8B"
@@ -70,7 +74,11 @@ def main():
         trust_remote_code=True,
     )
 
-    model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=False)
+    model = prepare_model_for_kbit_training(
+        model,
+        use_gradient_checkpointing=True,
+        gradient_checkpointing_kwargs={"use_reentrant": False}
+    )
     model.config.use_cache = False
 
     # 5. QLoRA Adapter Configuration
@@ -113,13 +121,13 @@ def main():
 
     train_dataset = Dataset.from_list(formatted_texts)
 
-    # 7. Training Arguments (Windows-Safe High Speed)
+    # 7. Training Arguments (Stable 8GB VRAM Tuned)
     training_args = SFTConfig(
         output_dir=output_dir,
         max_length=max_seq_length,
         dataset_text_field="text",
-        per_device_train_batch_size=4,        # Batch size 4 fills Ada Lovelace Tensor Cores efficiently
-        gradient_accumulation_steps=2,         # Effective batch size = 8
+        per_device_train_batch_size=1,        # 1 sample per pass guarantees 0% OOM on 8GB card
+        gradient_accumulation_steps=8,         # Effective batch size = 8
         num_train_epochs=1,                   # 1 Full Epoch
         learning_rate=2e-4,
         warmup_steps=18,
@@ -128,8 +136,9 @@ def main():
         tf32=True,                            # TF32 on RTX 4060 Ti
         logging_steps=5,
         optim="paged_adamw_8bit",
-        gradient_checkpointing=False,         # Disabled: eliminates redundant 2nd forward-pass
-        dataloader_num_workers=0,              # 0 on Windows avoids subprocess spawn loop
+        gradient_checkpointing=True,
+        gradient_checkpointing_kwargs={"use_reentrant": False},
+        dataloader_num_workers=0,
         dataloader_pin_memory=True,
         weight_decay=0.01,
         lr_scheduler_type="cosine",
