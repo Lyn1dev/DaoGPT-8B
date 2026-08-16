@@ -1,4 +1,4 @@
-# DaoGPT-8B: Fang Yuan Persona & Cultivation Philosophy LLM
+# FangYuan-8B: Fang Yuan Persona & Cultivation Philosophy LLM
 
 <div align="center">
 
@@ -8,7 +8,7 @@
 [![Framework](https://img.shields.io/badge/TRL-SFTTrainer-orange.svg)](https://github.com/huggingface/trl)
 [![Dataset](https://img.shields.io/badge/Dataset-4%2C901_Samples-blueviolet.svg)](data/sft_dataset.jsonl)
 
-*“In this world, everyone is a chess piece, and everyone is a chess player. Only eternal benefits are real.”*
+*“I am laughing at myself, I am also laughing at all of you. Love and friendship, killing and slaughtering, don't you all find this very boring?.”*
 
 </div>
 
@@ -16,34 +16,25 @@
 
 ## 📌 Overview
 
-**DaoGPT-8B** is an instruction-tuned LLM fine-tuned to capture the mind, cunning philosophy, and unyielding perseverance of **Fang Yuan (方源)**, the demonic protagonist of the legendary web novel ***Reverend Insanity (蛊真人)*** by Gu Zhen Ren.
+**FangYuan-8B** is an instruction-tuned LLM fine-tuned to capture the philosophy and perseverance of **Fang Yuan (方源)**, the protagonist of the legendary web novel ***Reverend Insanity (蛊真人)*** by Gu Zhen Ren.
 
-Unlike generic roleplay models that produce cartoonish villain tropes, DaoGPT is designed from the ground up to embody Fang Yuan's distinct psychology: **calm, rational, utilitarian, completely unburdened by societal morality, possessing zero regrets, and analyzing life through cost-benefit calculations and deep allegorical wisdom.**
+FangYuan-8B is designed from the ground up to embody Fang Yuan's distinct psychology, specifically his: **rationality, being completely unburdened by societal morality, possessing zero regrets, and analyzing life through calculations and allegorical wisdom.**
 
 ---
 
-## ✨ Core Features & Persona Archetypes
+## ✨ Core Archetypes
 
 The model is fine-tuned on **4,901 high-density instruction-response pairs** structured across five distinct persona archetypes:
 
-```
-                                  ┌──────────────────────────────────────────────┐
-                                  │             DaoGPT Persona Core              │
-                                  └──────────────────────┬───────────────────────┘
-                                                         │
-         ┌───────────────────┬───────────────────────────┼───────────────────────────┬───────────────────┐
-         │                   │                           │                           │                   │
-         ▼                   ▼                           ▼                           ▼                   ▼
-┌─────────────────┐ ┌──────────────────┐ ┌───────────────────────────────┐ ┌─────────────────┐ ┌─────────────────┐
-│ 1. Pragmatic    │ │ 2. Legends of    │ │ 3. Stoic Indifference         │ │ 4. Tactical     │ │ 5. Demonic      │
-│    Utilitarian  │ │    Ren Zu Wisdom │ │    & Anti-Regret              │ │    Scheming     │ │    Roleplay     │
-│                 │ │                  │ │                               │ │                 │ │                 │
-│ Benefits over   │ │ Allegories on    │ │ Complete peace with ruin;     │ │ Exploiting clan │ │ Calm & polite   │
-│ emotions; cost/ │ │ desire, solitude │ │ "No regrets even in death",   │ │ rules; facade of│ │ externally; zero│
-│ benefit mindset │ │ rules, and hope  │ │ journey is the only reward    │ │ mediocrity      │ │ attachments     │
-└─────────────────┘ └──────────────────┘ └───────────────────────────────┘ └─────────────────┘ └─────────────────┘
-```
+1. Pragmatic Utilitarian: Benefits over emotions; cost/benefit mindset.
 
+2. Legends of Ren Zu Wisdom: Allegories on desire, solitude, rules, and hope.
+
+3. Stoic Indifference & Amor Fati: Complete peace with ruin; "No regrets even in death", journey is the only reward.
+
+4. Tactical Scheming: Exploiting clan rules; facade of mediocrity.
+
+5. Demonic Cultivation Roleplay: Calm & polite externally; zero attachments.
 ---
 
 ## 📂 Repository Structure
@@ -85,7 +76,7 @@ source daogpt-env/bin/activate  # On Windows: .\daogpt-env\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 2. Fine-Tuning DaoGPT (`train.py`)
+### 2. Fine-Tuning FangYuan-8B (`train.py`)
 
 Run the fine-tuning script. It is pre-configured to run **1 full epoch** (~612 optimization steps) across all 4,901 samples with memory optimizations for consumer GPUs (e.g. RTX 4060 Ti 8GB VRAM):
 
@@ -149,7 +140,7 @@ To share your trained adapter and automated model card with the open-source comm
    ```
 2. Upload the model:
    ```bash
-   python push_to_hub.py --repo_id <your-hf-username>/DaoGPT-8B-LoRA
+   python push_to_hub.py --repo_id <your-hf-username>/FangYuan-8B-LoRA
    ```
 
 ---
