@@ -1,20 +1,25 @@
 """
 FangYuan-8B Hugging Face Hub Uploader
 ======================================
-Uploads your trained FangYuan-8B LoRA adapter weights, tokenizer, and an automated
+Uploads trained FangYuan-8B LoRA adapter weights, tokenizer, and an automated
 rich Model Card (README.md) to the Hugging Face Hub.
 
 Usage:
-    python push_to_hub.py --repo_id <your-hf-username>/FangYuan-8B-LoRA
+    py -3.10 push_to_hub.py
 """
 
 import os
+import sys
 import argparse
 from pathlib import Path
 from huggingface_hub import HfApi, create_repo, upload_folder
 from dotenv import load_dotenv
 
-# Load .env if present
+# Ensure UTF-8 output on Windows console
+if sys.platform == "win32":
+    sys.stdout.reconfigure(encoding="utf-8")
+
+# Load environment variables from .env
 load_dotenv()
 
 MODEL_CARD_TEMPLATE = """---
@@ -28,45 +33,62 @@ tags:
 - fang-yuan
 - philosophy
 - causal-lm
+- xianxia
 language:
 - en
 pipeline_tag: text-generation
 library_name: peft
 ---
 
-# FangYuan-8B: Fang Yuan Persona & Cultivation Philosophy LLM
+# ☯️ FangYuan-8B: Fang Yuan Persona & Cultivation Philosophy LLM
 
-> *"I am laughing at myself, I am also laughing at all of you. Love and friendship, killing and slaughtering, don't you all find this very boring?."* — **Fang Yuan**
+> *"I am laughing at myself, I am also laughing at all of you. Love and friendship, killing and slaughtering, don't you all find this very boring?"* — **Fang Yuan (方源)**
 
-**FangYuan-8B** is an instruction-tuned LLM fine-tuned to capture the philosophy and perseverance of **Fang Yuan (方源)**, the protagonist of the legendary web novel ***Reverend Insanity (蛊真人)*** by Gu Zhen Ren.
+**FangYuan-8B** is a fine-tuned large language model engineered to embody the psychology, strategic calculation, and philosophical perseverance of **Fang Yuan (方源)**, the protagonist of the legendary web novel ***Reverend Insanity (蛊真人)*** by Gu Zhen Ren.
 
-FangYuan-8B is designed from the ground up to embody Fang Yuan's distinct psychology, specifically his: **rationality, being completely unburdened by societal morality, possessing zero regrets, and analyzing life through calculations and allegorical wisdom.**
-
-The model is trained on **4,901 curated instruction-response pairs** derived from all 2,334 chapters of *Reverend Insanity* using QLoRA 4-bit fine-tuning on **Qwen3-8B**.
+FangYuan-8B captures Fang Yuan's distinct cognitive framework:
+* **Absolute Pragmatism & Utilitarianism**: Morals and institutions are evaluated purely through benefits vs. costs.
+* **Stoic Tranquility & Anti-Regret**: Complete indifference to failure or death; the journey toward eternal life gives life meaning.
+* **No Cartoon Villainy**: Calm, polite, and respectful on the outside; ruthlessly rational on the inside.
+* **The Legends of Ren Zu**: Natural synthesis of allegorical parables (Hope Gu, Attitude Gu, Rules and Regulations).
 
 ---
 
-## ✨ Core Archetypes
+## 📊 Dataset & Training Details
 
-The model is fine-tuned on **4,901 high-density instruction-response pairs** structured across five distinct persona archetypes:
+The model is fine-tuned on **4,901 high-density instruction-response pairs** synthesized directly from the full 2,334 chapters of *Reverend Insanity*.
 
-1. **Pragmatic Utilitarian**: Benefits over emotions; cost/benefit mindset.
-2. **Legends of Ren Zu Wisdom**: Allegories on desire, solitude, rules, and hope.
-3. **Stoic Indifference & Amor Fati**: Complete peace with ruin; "No regrets even in death", journey is the only reward.
-4. **Tactical Scheming**: Exploiting clan rules; facade of mediocrity.
-5. **Demonic Cultivation Roleplay**: Calm & polite externally; zero attachments.
+* **Base Model**: [`Qwen/Qwen3-8B`](https://huggingface.co/Qwen/Qwen3-8B)
+* **Dataset Size**: 4,901 curated multi-turn dialogue pairs
+* **Fine-Tuning Method**: QLoRA (4-bit NF4 Quantization)
+* **LoRA Hyperparameters**:
+  * Rank ($r$): `16`
+  * Alpha ($\alpha$): `32`
+  * Dropout: `0.0`
+  * Target Modules: `q_proj`, `k_proj`, `v_proj`, `o_proj`, `gate_proj`, `up_proj`, `down_proj`
+* **Schedule**: 1 Full Epoch with Cosine learning rate schedule
+
+---
+
+## 🏛️ The 5 Core Persona Archetypes
+
+1. **Pragmatic Life Advice & Dilemmas**: Deconstructing societal conditioning, family loyalty, and morality as tools of control.
+2. **The Legends of Ren Zu Interpretations**: Deep philosophical analysis of human nature, solitude, rules, and perseverance.
+3. **Stoic Indifference & Anti-Regret**: Serenity in facing total annihilation, defeat, or betrayal.
+4. **Machiavellian Tactical Scheming**: Navigating power structures, unassuming facades, and resource exploitation.
+5. **In-Character Dialogue & Roleplay**: Polite, collected interactions with other cultivators and elders.
 
 ---
 
 ## 🚀 Quickstart & Inference
 
-### Installation
+### 1. Installation
 
 ```bash
 pip install torch transformers peft bitsandbytes accelerate
 ```
 
-### Python Inference
+### 2. Python Inference
 
 ```python
 import torch
@@ -76,7 +98,7 @@ from peft import PeftModel
 BASE_MODEL = "Qwen/Qwen3-8B"
 ADAPTER_REPO = "{repo_id}"
 
-# 1. Quantization configuration (4-bit NF4)
+# 1. 4-bit Quantization Configuration
 bnb_config = BitsAndBytesConfig(
     load_in_4bit=True,
     bnb_4bit_quant_type="nf4",
@@ -92,7 +114,7 @@ base_model = AutoModelForCausalLM.from_pretrained(
     trust_remote_code=True,
 )
 
-# 3. Load LoRA Adapter
+# 3. Attach Fang Yuan LoRA Adapter
 model = PeftModel.from_pretrained(base_model, ADAPTER_REPO)
 model.eval()
 
@@ -116,29 +138,13 @@ with torch.no_grad():
     )
 
 response = tokenizer.decode(output[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True)
-print("Fang Yuan:", response)
+print("Fang Yuan:\\n", response)
 ```
 
 ---
 
-## ⚙️ Training Details
-
-- **Base Model**: `Qwen/Qwen3-8B`
-- **Method**: QLoRA (4-bit NF4 Quantization + Paged 8-bit AdamW)
-- **LoRA Hyperparameters**:
-  - Rank ($r$): `16`
-  - Alpha ($\\alpha$): `32`
-  - Dropout: `0.05`
-  - Target Modules: `q_proj`, `k_proj`, `v_proj`, `o_proj`, `gate_proj`, `up_proj`, `down_proj`
-- **Dataset Size**: 4,901 high-density instruction pairs
-- **Epochs**: 1 Full Epoch
-- **Learning Rate**: `2e-4` with Cosine decay
-- **Hardware**: Fine-tuned on a single consumer GPU (RTX 4060 Ti 8GB VRAM)
-
----
-
 ## 📜 Disclaimer
-This model is a fan-created research and roleplay artifact exploring fictional novel philosophy. It is inspired by Gu Zhen Ren's *Reverend Insanity*.
+This model is a fan-created research and roleplay artifact exploring fictional novel philosophy. It is inspired by Gu Zhen Ren's *Reverend Insanity (蛊真人)*.
 """
 
 
@@ -160,7 +166,7 @@ def main():
         "--token",
         type=str,
         default=os.getenv("HF_TOKEN", None),
-        help="Hugging Face access token (or set HF_TOKEN environment variable)",
+        help="Hugging Face access token (reads from .env by default)",
     )
     parser.add_argument(
         "--private",
@@ -173,7 +179,10 @@ def main():
 
     if not adapter_path.exists():
         print(f"[-] Error: Adapter directory '{adapter_path}' does not exist.")
-        print("    Please run `py -3.10 train.py` first to train and save the adapter.")
+        return
+
+    if not args.token:
+        print("[-] Error: No Hugging Face token found. Please set HF_TOKEN in .env or pass --token.")
         return
 
     print("==========================================================")
@@ -184,14 +193,14 @@ def main():
 
     # Generate Model Card README.md inside the adapter folder
     readme_path = adapter_path / "README.md"
-    print(f"[+] Writing Hugging Face Model Card to {readme_path}...")
+    print(f"[+] Generating Hugging Face Model Card -> {readme_path}...")
     with open(readme_path, "w", encoding="utf-8") as f:
         f.write(MODEL_CARD_TEMPLATE.format(repo_id=args.repo_id))
 
     # Initialize HF API
     api = HfApi(token=args.token)
 
-    print(f"[+] Ensuring repository exists: {args.repo_id}...")
+    print(f"[+] Verifying repository on Hugging Face: {args.repo_id}...")
     try:
         create_repo(
             repo_id=args.repo_id,
@@ -200,11 +209,11 @@ def main():
             exist_ok=True,
             repo_type="model",
         )
-        print("    Repository ready.")
+        print("    Repository verified / created successfully.")
     except Exception as e:
-        print(f"[-] Repository verification notice: {e}")
+        print(f"[-] Notice: {e}")
 
-    print(f"[+] Uploading files from '{adapter_path}' to '{args.repo_id}'...")
+    print(f"[+] Uploading all adapter files from '{adapter_path}' to '{args.repo_id}'...")
     try:
         upload_folder(
             folder_path=str(adapter_path),
@@ -214,12 +223,11 @@ def main():
             commit_message="Upload FangYuan-8B LoRA adapter & Model Card",
         )
         print("\n==========================================================")
-        print("🎉 SUCCESS! Model successfully published to Hugging Face Hub!")
-        print(f"🔗 View your model: https://huggingface.co/{args.repo_id}")
+        print("SUCCESS! Model successfully published to Hugging Face Hub!")
+        print(f"View your model live at: https://huggingface.co/{args.repo_id}")
         print("==========================================================")
     except Exception as e:
         print(f"\n[-] Upload failed: {e}")
-        print("    Tip: Check if your HF_TOKEN has WRITE permission or run `huggingface-cli login`.")
 
 
 if __name__ == "__main__":
